@@ -117,11 +117,11 @@
                 <!-- Main Content -->
                 <section>
     
-        <a href="/2017/02/08/hello-world/">
+        <a href="/2017/08/14/IoT-Door-Locks-Get-Bricked/">
 
-    <h1 class="title">Hello World</h1>
+    <h1 class="title">IoT Door Locks Get Bricked</h1>
     <div class="meta">
-        2017-02-08
+        2017-08-14
     </div>
 
 </a>
@@ -132,15 +132,20 @@
 
 <!-- Content -->
 
-	<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="external">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="external">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="external">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="external">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo new <span class="string">"My New Post"</span></div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="external">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo server</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="external">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo generate</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="external">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo deploy</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="external">Deployment</a></p>
+	<p>Five hundred electronic locks <a href="https://arstechnica.com/information-technology/2017/08/500-smart-locks-arent-so-smart-anymore-thanks-to-botched-update/" target="_blank" rel="external">stopped working</a>. The company says there was a firmware update that went bad, and the locks don’t phone home anymore. Let’s see what else we can learn about the system.</p>
+<h2 id="The-System"><a href="#The-System" class="headerlink" title="The System"></a>The System</h2><p>The lock is the LockState RemoteLock 6i. Its <a href="http://www.lockstate.com/wp-content/uploads/2015/12/LS6i.pdf" target="_blank" rel="external">manual</a> tells us a few interesting facts.</p>
+<p><img src="../images/lockstate-remotelock-6i-manual-page-2.png" alt="Manual Page 2"></p>
+<p>This lock acts as a wireless access point during setup. You select an SSID to connect to and enter the passphrase. The screenshots in steps 4 and 5 don’t show anything other than a passphrase, so WPA-Enterprise and/or client certificates are likely unsupported. The lock keeps a copy of your SSID password</p>
+<p>Once the lock is online you register with their cloud service at devicewebmanager.com. This is a Rails site, shown by the <a href="https://apidock.com/ruby/ERB" target="_blank" rel="external">ERB template</a> message: <img src="../images/lockstate-web-search.png" alt="erb template"></p>
+<p>The lock will wake up every 20 minutes and check in with the cloud service for changes. Otherwise it keeps the wifi off (this thing only runs on 4 AA batteries). It will also wake up when someone opens the door or pushes buttons on the lock, so it can log activities to the cloud service. This is ripe for the classic cinematic attack of disabling the security system with wire cutters, except all we have to do is deauth the lock.</p>
+<p>However, since the lock is almost never connected it is a poor target to try to compromise over the Internet or LAN. We might be able to replay remote “unlock” commands if encryption is lacking, but I don’t have one of these to play with.</p>
+<h2 id="The-Board"><a href="#The-Board" class="headerlink" title="The Board"></a>The Board</h2><p>The manual has an intruiging shot of part of the board inside. I wonder what they are using to run the device?</p>
+<p><img src="../images/lockstate-remotelock-6i-manual-page-1.png" alt="Manual Page 1"></p>
+<p>Let’s get a close up: <img src="../images/lockstate-remotelock-6i-dev-board.png" alt="board closeup"></p>
+<p>That doesn’t show us other than a shield over the wifi chip, a wired antenna, and an etched antenna. This must be a dev board and not the finished product. Here’s a shot of the finished board from the <a href="https://www.youtube.com/watch?v=a45ZVpprJdM" target="_blank" rel="external">install video</a>: <img src="../images/lockstate-video-still.png" alt="video still"></p>
+<p>All I can tell from that potato quality is that the etched wifi antenna is gone and there are a lot of unused spaces for chips on the board. Though up in the right corner “LOCKSTATE” seems to be printed, so at least we know this is a custom board. Until a better image or a teardown surfaces this will have to do. Inferring from the power consumption and the AP+webserver+client capabilities suggests the communications are done by a SoC like ESP8266.</p>
+<p>Further evidence that this is custom is that a search on LinkedIn reveals LockState employs at least one experienced embedded systems developer.</p>
+<h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h2><p>This lock is a short-term deterrent and probably does a pretty good job of it. You could probably bump it, deauth and then try default passwords, and look for wear and oils on the keys. Since I don’t have one here I can’t tell if a replay attack would work. The developers probably bricked them because they sent out an unbootable firmware image OTA. If the board had a USB or mini-USB port then they could release an app that would upload fresh firmware and fix the lock. But ports cost money, so the reliability of your lock depends on the quality of Lockstate’s software practices. I think we all hope this was not a representative moment.</p>
 
 
 
@@ -149,7 +154,7 @@
 
 
 <div class="tags">
-    
+    <a href="/tags/internet-of-things/" class="button small">internet of things</a>
 </div>
 
 

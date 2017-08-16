@@ -3145,7 +3145,7 @@ body.is-menu-visible #menu {
 /* Wrapper */
 #wrapper > * > .inner {
   width: 100%;
-  max-width: 68em;
+  max-width: 48em;
   margin: 0 auto;
   padding: 0 2.5em; }
   @media screen and (max-width: 736px) {
